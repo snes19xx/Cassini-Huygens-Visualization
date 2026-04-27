@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Cassini-Huygens Viz</title>
+    <meta
+      name="description"
+      content="An interactive 3D visualization of the Cassini-Huygens mission: 20 years orbiting Saturn, culminating in the spacecraft's final plunge into the planet's atmosphere on September 15, 2017."
+    />
+
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Grand Finale — Cassini-Huygens Mission"
+    />
+    <meta
+      property="og:description"
+      content="Watch Cassini's 13-year Saturn mission in 90 seconds."
+    />
+
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>"
+    />
+
+    <!--
+      Preconnect to nothing--I wabt tio mnake this app have zero external runtime dependencies.
+      All assets are bundled by Vite. Keeping the page offline-capable is
+      intentional: the visualization runs entirely on the GPU with no API calls.
+    -->
+  </head>
+  <body>
+    <!--
+      #root is the React mount point.
+      The background is set to black here (not in CSS) to prevent
+      the white flash before the first React paint on slow connections.
+    -->
+    <div
+      id="root"
+      style="background: #000; width: 100%; height: 100dvh; overflow: hidden"
+    ></div>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
