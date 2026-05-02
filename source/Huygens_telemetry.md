@@ -1,0 +1,18 @@
+- **Modulation Index**
+  - The modulation index for the S-band relay link is 1.34 radians.
+- **Receiver Doppler Compensation**
+  - An in-flight test conducted in February 2000 showed that the bit synchronizer in the probe receiver could not handle the predicted mission Doppler shift.
+  - This hardware issue forced a mission redesign.
+  - New trajectory profiles specifying the probe-orbiter distance and the boresight-to-orbiter antenna angle were approved in June 2001 to accommodate the as-built capabilities of the relay receiver.
+- **Link Margin ($E_b/N_0$)**
+  - The document does not explicitly state the $E_b/N_0$ ratio specifically for the S-band relay link.
+  - The link design assumes a minimum end-to-end frame-error rate of $10^{-5}$.
+  - The required threshold $E_b/N_0$ for an uncoded command data channel (X-band) with a bit-error rate no greater than $10^{-5}$ is +9.6 dB.
+  - The threshold $E_b/N_0$ for a (15,1/6) convolutionally coded telemetry data channel (X-band) with a bit-error rate no greater than $5\times10^{-3}$ is +0.31 dB.
+- **Antenna Gain Patterns**
+  - The on-boresight probe antenna gain is +5 dBi at 2040 MHz and +3 dBi at 2098 MHz.
+  - The difference between the maximum and minimum antenna gain at approximately 60 degrees from the boresight is 3 dB peak-to-peak.
+  - The High-Gain Antenna pointing losses during relay operations are a maximum of 0.5 dB.
+- **Redundant Chain Delay**
+  - The data stream on one link is delayed by about 6 seconds relative to the other link.
+  - This delay prevents data loss from brief transmission outages.
