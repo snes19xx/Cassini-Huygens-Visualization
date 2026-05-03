@@ -1,0 +1,137 @@
+/*
+  Labels.module.css
+*/
+
+.container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Each label */
+.label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition:
+    opacity var(--motion-duration-panel) var(--motion-ease-standard),
+    transform 0.1s linear;
+  z-index: 1;
+}
+
+.label[data-active="true"] {
+  z-index: 10;
+}
+
+/*  Dot -- anchor point on the spacecraft  */
+.dot {
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--color-wire);
+  background: var(--color-bg);
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition:
+    background var(--motion-duration-micro) var(--motion-ease-standard),
+    border-color var(--motion-duration-micro) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-micro) var(--motion-ease-standard);
+}
+
+/*  Leader line  */
+.line {
+  width: 20px;
+  height: 1px;
+  background: var(--color-wire-dim);
+  flex-shrink: 0;
+  transition: background var(--motion-duration-micro)
+    var(--motion-ease-standard);
+}
+
+/*  Text block  */
+.textBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 8px;
+  border: 1px solid var(--panel-border);
+  border-left: 2px solid var(--color-wire-dim);
+  background: var(--panel-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 0 2px 2px 0;
+  transition:
+    background var(--motion-duration-micro) var(--motion-ease-standard),
+    border-color var(--motion-duration-micro) var(--motion-ease-standard);
+}
+
+.labelName {
+  font-family: var(--font-mono);
+  font-size: var(--text-10);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-05);
+  text-transform: uppercase;
+  color: var(--color-fg);
+  line-height: 1.2;
+  transition: color var(--motion-duration-micro) var(--motion-ease-standard);
+}
+
+.labelSub {
+  font-family: var(--font-mono);
+  font-size: var(--text-9);
+  letter-spacing: 0.04em;
+  color: var(--color-fg-dim);
+  line-height: 1.1;
+  opacity: 0.8;
+}
+
+/*  Secondary label adjustments  */
+.label[data-primary="false"] .textBlock {
+  background: var(--panel-bg-chip);
+}
+
+/*  Hover state */
+.label:hover {
+  opacity: 1 !important;
+}
+
+.label:hover .dot {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+.label:hover .line {
+  background: var(--color-wire);
+}
+
+.label:hover .textBlock {
+  background: var(--panel-bg-heavy);
+  border-color: var(--color-accent-dim);
+}
+
+/*  Active (selected) state  */
+.label[data-active="true"] .dot {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 10px var(--color-accent-glow);
+}
+
+.label[data-active="true"] .line {
+  background: var(--color-accent);
+}
+
+.label[data-active="true"] .textBlock {
+  background: var(--panel-bg-heavy);
+  border-color: var(--color-accent);
+  border-left-color: var(--color-accent);
+}
+
+.label[data-active="true"] .labelName {
+  color: var(--color-accent);
+}

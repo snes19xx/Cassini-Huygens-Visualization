@@ -1,0 +1,368 @@
+/*
+  InfoPanel.module.css
+*/
+
+/* Outer wrapper */
+.wrapper {
+  pointer-events: auto;
+  position: absolute;
+  top: clamp(140px, 18vh, 200px);
+  width: 280px;
+  z-index: 100;
+
+  background: var(--panel-bg-info);
+  backdrop-filter: blur(var(--panel-blur));
+  -webkit-backdrop-filter: blur(var(--panel-blur));
+
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  transition:
+    background var(--motion-duration-panel) var(--motion-ease-standard),
+    border-color var(--motion-duration-panel) var(--motion-ease-standard),
+    opacity var(--motion-duration-panel) var(--motion-ease-standard),
+    transform var(--motion-duration-panel) var(--motion-ease-standard),
+    left var(--motion-duration-panel) var(--motion-ease-standard),
+    right var(--motion-duration-panel) var(--motion-ease-standard);
+
+  overflow: hidden;
+}
+
+.wrapper[data-position="left"] {
+  left: var(--chrome-pad-x);
+  animation: panelSlideInLeft 400ms var(--motion-ease-standard) both;
+}
+
+.wrapper[data-position="right"] {
+  right: var(--chrome-pad-x);
+  animation: panelSlideInRight 400ms var(--motion-ease-standard) both;
+}
+
+@keyframes panelSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes panelSlideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.wrapper::before {
+  content: "";
+  display: block;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--color-accent) 0%,
+    var(--color-accent) 40%,
+    transparent 100%
+  );
+  opacity: 0.8;
+}
+
+/* Header*/
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.missionId {
+  font-family: var(--font-mono);
+  font-size: var(--text-9);
+  font-weight: 600;
+  letter-spacing: var(--tracking-05);
+  text-transform: uppercase;
+  color: var(--color-fg);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Telemetry status indicator */
+.telemetry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: var(--tracking-02);
+  text-transform: uppercase;
+  color: var(--color-fg-dim);
+}
+
+.telemetryDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.telemetryDot[data-active="true"] {
+  background: var(--color-accent);
+  box-shadow: 0 0 6px var(--color-accent-glow);
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: -4px;
+  color: var(--color-fg-dim);
+  border-radius: 2px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.closeBtn:hover {
+  background: var(--color-fg-faint);
+  color: var(--color-fg);
+}
+
+/* Section label */
+.sectionLabel {
+  padding: 10px 16px 6px;
+  font-size: 10px;
+  letter-spacing: var(--tracking-05);
+  text-transform: uppercase;
+  color: var(--color-fg-dim);
+  border-bottom: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ── Stat grid ─────────────────────────────────────────────────────────── */
+.statGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.stat {
+  padding: 12px 16px;
+  border-right: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.stat:nth-child(even) {
+  border-right: none;
+}
+
+.statLabel {
+  display: block;
+  font-size: 9px;
+  letter-spacing: var(--tracking-04);
+  text-transform: uppercase;
+  color: var(--color-fg-dim);
+  margin-bottom: 4px;
+}
+
+.statValue {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-fg);
+  line-height: 1;
+}
+
+/* ── Bar indicators ────────────────────────────────────────────────────── */
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.barLabel {
+  font-size: 10px;
+  letter-spacing: var(--tracking-02);
+  text-transform: uppercase;
+  color: var(--color-fg-dim);
+  width: 75px;
+  flex-shrink: 0;
+}
+
+.bar {
+  flex: 1;
+  height: 2px;
+  background: var(--color-fg-faint);
+  border-radius: 1px;
+  overflow: hidden;
+  position: relative;
+}
+
+.barFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 0.4s var(--motion-ease-standard);
+}
+
+.barValue {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-fg);
+  min-width: 35px;
+  text-align: right;
+}
+
+/* ── Component detail view ─────────────────────────────────────────────── */
+.detailHeader {
+  padding: 16px;
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--color-accent-wash);
+}
+
+.detailName {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-fg);
+  margin: 0 0 4px;
+}
+
+.detailSub {
+  font-size: 10px;
+  color: var(--color-accent);
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+.detailBody {
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-fg-muted);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+/* ── Back button ───────────────────────────────────────────────── */
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  width: 100%;
+  font-size: 10px;
+  letter-spacing: var(--tracking-04);
+  text-transform: uppercase;
+  color: var(--color-fg-dim);
+  transition: color 0.2s;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.backBtn:hover {
+  color: var(--color-accent);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.backArrow {
+  font-size: 12px;
+}
+
+/* ── Terminal Mode (Space Theme) ───────────────────────────────────────── */
+
+.wrapper[data-theme="space"] {
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: none;
+}
+
+.wrapper[data-theme="space"]::before {
+  display: none;
+}
+
+.wrapper[data-theme="space"] * {
+  font-family: var(--font-mono), monospace !important;
+  text-shadow: none !important;
+}
+
+.wrapper[data-theme="space"] .header,
+.wrapper[data-theme="space"] .sectionLabel,
+.wrapper[data-theme="space"] .stat,
+.wrapper[data-theme="space"] .barRow,
+.wrapper[data-theme="space"] .detailHeader,
+.wrapper[data-theme="space"] .detailBody {
+  border: none;
+  background: none;
+}
+
+.wrapper[data-theme="space"] .header {
+  padding: 0 0 24px 0;
+}
+
+.wrapper[data-theme="space"] .sectionLabel {
+  padding: 16px 0 12px 0;
+}
+
+.wrapper[data-theme="space"] .stat {
+  padding: 0;
+}
+
+.wrapper[data-theme="space"] .statGrid {
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* Hide graphical elements entirely */
+.wrapper[data-theme="space"] .telemetryDot,
+.wrapper[data-theme="space"] .bar {
+  display: none;
+}
+
+/* Restructure the layout of the BarRow without the bar */
+.wrapper[data-theme="space"] .barRow {
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.wrapper[data-theme="space"] .barLabel {
+  width: 70px;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.wrapper[data-theme="space"] .barValue {
+  text-align: right;
+}
