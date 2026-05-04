@@ -2,7 +2,7 @@
 import { createCanvas } from "canvas";
 import { writeFileSync } from "fs";
 
-const BASE = "https://bjj.mmedia.is/data/s_rings/";
+const BASE = "https://bjj.mmedia.is/data/s_rings/"; // credits: Björn Jónsson
 
 async function fetchProfile(filename) {
   const res = await fetch(BASE + filename);

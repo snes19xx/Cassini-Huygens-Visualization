@@ -48,6 +48,6 @@ def apply_complex_false_color(input_filename, output_filename):
 
 if __name__ == "__main__":
     input_file = 'titan_bw.jpg'
-    output_file = 'titan_false_color_v3.jpg'
+    output_file = 'titan_false_color.jpg'
     
     apply_complex_false_color(input_file, output_file)
