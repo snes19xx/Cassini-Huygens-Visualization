@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Texture Resolution & Compression Tester</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #050505;
+        color: white;
+        font-family: sans-serif;
+      }
+      #canvas-container {
+        width: 100vw;
+        height: 100vh;
+      }
+      #ui {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(20, 20, 20, 0.8);
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #333;
+        z-index: 10;
+        max-width: 300px;
+      }
+      input[type="file"] {
+        margin-top: 10px;
+        margin-bottom: 10px;
+        display: block;
+        width: 100%;
+      }
+      .stats {
+        font-size: 12px;
+        color: #aaa;
+        margin-top: 10px;
+      }
+      h3 {
+        margin-top: 0;
+        font-size: 16px;
+      }
+    </style>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="ui">
+      <h3>Texture Tester</h3>
+      <label for="fileInput">Load JPG, PNG, WebP, or KTX2:</label>
+      <input
+        type="file"
+        id="fileInput"
+        accept="image/jpeg, image/png, image/webp, .ktx2"
+      />
+      <div class="stats" id="fileStats">No texture loaded.</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
+
+      const container = document.getElementById("canvas-container");
+      const scene = new THREE.Scene();
+
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000,
+      );
+      camera.position.set(0, 0, 25);
+
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: "high-performance",
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      container.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+      scene.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
+      directionalLight.position.set(10, 10, 10);
+      scene.add(directionalLight);
+
+      const geometry = new THREE.SphereGeometry(10, 128, 64);
+      const material = new THREE.MeshStandardMaterial({
+        color: 0x9aa0a8,
+        roughness: 0.8,
+      });
+      const sphere = new THREE.Mesh(geometry, material);
+      scene.add(sphere);
+
+      const textureLoader = new THREE.TextureLoader();
+
+      const ktx2Loader = new KTX2Loader()
+        .setTranscoderPath(
+          "https://unpkg.com/three@0.160.0/examples/jsm/libs/basis/",
+        )
+        .detectSupport(renderer);
+
+      let currentTexture = null;
+      const fileInput = document.getElementById("fileInput");
+      const fileStats = document.getElementById("fileStats");
+
+      fileInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const url = URL.createObjectURL(file);
+        const ext = file.name.split(".").pop().toLowerCase();
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
+        fileStats.innerHTML = `Loading...<br>File: ${file.name}<br>Size: ${sizeMB} MB`;
+
+        const onTextureLoaded = (texture) => {
+          if (currentTexture) currentTexture.dispose();
+
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+          if (ext !== "ktx2") {
+            texture.minFilter = THREE.LinearMipmapLinearFilter;
+            texture.generateMipmaps = true;
+          }
+
+          material.map = texture;
+          material.color.setHex(0xffffff); // Reset base color to white
+          material.needsUpdate = true;
+          currentTexture = texture;
+
+          fileStats.innerHTML = `Loaded: ${file.name}<br>Size: ${sizeMB} MB<br>Format: ${ext.toUpperCase()}`;
+        };
+
+        if (ext === "ktx2") {
+          ktx2Loader.load(url, onTextureLoaded, undefined, (err) => {
+            console.error("KTX2 Load Error:", err);
+            fileStats.innerHTML = `<span style="color:red">Failed to load KTX2. Check console.</span>`;
+          });
+        } else {
+          textureLoader.load(url, onTextureLoaded);
+        }
+      });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>
