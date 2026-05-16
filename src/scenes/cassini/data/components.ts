@@ -12,17 +12,20 @@ export interface ComponentMetadata {
   name: string;
   shortName: string;
   description: string;
-  mass: number; // kg
+  mass: number;
   parent: string;
-  stats: StatRow[]; // Shown in InfoPanel detail view
-  // World-space anchor for the 3D label projector.
-  // Tuned to CassiniHuygensA.glb scene units (scale 0.5 applied in GLB).
+  stats: StatRow[];
+  // For busRelative: false == absolute scene-space position (driven by live mesh ref).
+  // For busRelative: true  == local offset FROM bus centre, rotated by spacecraft quaternion.
+  // A-series GLB applies scale=={0.5} per mesh, so scene units ≈ 0.5 × model metres.
   anchor: THREE.Vector3;
-  modelRadius: number; // Occlusion sphere radius for dot-product culling
+  modelRadius: number;
+  busRelative: boolean;
 }
 
 export const COMPONENTS: ComponentMetadata[] = [
-  //  Spacecraft Bus
+  //  Primary — live mesh refs
+
   {
     id: "bus",
     name: "Main Spacecraft Bus",
@@ -42,10 +45,10 @@ export const COMPONENTS: ComponentMetadata[] = [
       { label: "Structure", value: "12-sided Al honeycomb" },
     ],
     anchor: new THREE.Vector3(0, 0, 0),
-    modelRadius: 10,
+    modelRadius: 3,
+    busRelative: false,
   },
 
-  //  High-Gain Antenna
   {
     id: "hga",
     name: "High-Gain Antenna",
@@ -66,41 +69,61 @@ export const COMPONENTS: ComponentMetadata[] = [
       { label: "Ka-band beamwidth", value: "0.167°" },
       { label: "Ku-band (RADAR)", value: "49.8 dBi @ 13,776.5 MHz" },
     ],
-    anchor: new THREE.Vector3(0, 3.8, 0),
-    modelRadius: 6,
+    anchor: new THREE.Vector3(0.002, 1.932, -0.101),
+    modelRadius: 2,
+    busRelative: false,
   },
 
-  //  Huygens Probe ─
   {
     id: "huygens",
-    name: "Huygens Probe",
-    shortName: "HUY",
+    name: "The Huygens Probe",
+    shortName: "HUYGENS",
     description:
-      "ESA-built atmospheric descent probe, 2.7 m diameter, 350 kg. Separated from " +
-      "Cassini on December 25, 2004 and entered Titan's atmosphere January 14, 2005 at " +
-      "~6.0 km/s. AQ60 silica-fibre heat shield (60° half-angle coni-spherical) " +
-      "withstood a 12,000 °C shock layer. Transmitted science data for 72 minutes " +
-      "on the surface. Relay chain A lost due to a software command omission; chain B survived.",
-    mass: 350,
+      "The Huygens probe, built by the ESA, was part of " +
+      "the Cassini-Huygens mission to explore Saturn and its largest moon, Titan. " +
+      "It was designed to study Titan's atmosphere and surface composition, making " +
+      "it the first spacecraft to land on a body in the outer solar system.",
+    mass: 318,
     parent: "bus",
     stats: [
-      { label: "Mass", value: "350 kg" },
-      { label: "Diameter", value: "2.7 m" },
+      { label: "Total mass", value: "318 kg" },
       {
-        label: "Shield material",
-        value: "AQ60 — silica fibre + phenolic resin",
+        label: "Sensors",
+        value: "HASI, GCMS, ACP",
       },
-      { label: "Shock layer temp", value: "12,000 °C" },
-      { label: "Shield surface temp", value: "1,800 °C" },
-      { label: "Relay band", value: "S-band, Chain A 2,040 MHz / B 2,098 MHz" },
-      { label: "Data rate", value: "8,192 bps per relay chain" },
-      { label: "Surface ops", value: "72 min (signal received)" },
+      {
+        label: "Imaging",
+        value: "DISR, DWE",
+      },
+      { label: "Surface Science", value: "SSP" },
     ],
-    anchor: new THREE.Vector3(-1.2, -1.5, 0),
-    modelRadius: 4,
+    anchor: new THREE.Vector3(0.072, -0.721, -4.587),
+    modelRadius: 1.5,
+    busRelative: false,
   },
 
-  //  Imaging Science Subsystem ─
+  {
+    id: "mag",
+    name: "MAG",
+    shortName: "MAG",
+    description:
+      "Dual Technique Magnetometer — fluxgate (FGM) at 6.5 m on the magnetometer boom " +
+      "and a vector/scalar helium magnetometer (V/SHM) at 11 m from the spacecraft centre. " +
+      "Total boom length: 13.0 m. Mapped Saturn's global magnetic field structure " +
+      "and quantified Titan's induced magnetosphere.",
+    mass: 8.82,
+    parent: "bus",
+    stats: [
+      { label: "Mass", value: "8.82 kg (total system)" },
+      { label: "FGM position", value: "6.5 m on boom" },
+      { label: "V/SHM pos", value: "11.0 m on boom" },
+      { label: "Boom length", value: "13.0 m" },
+    ],
+    anchor: new THREE.Vector3(-0.009, -2.44, -4.66),
+    modelRadius: 1.5,
+    busRelative: false,
+  },
+
   {
     id: "iss",
     name: "Imaging Science Subsystem",
@@ -123,52 +146,11 @@ export const COMPONENTS: ComponentMetadata[] = [
       { label: "WAC spectral", value: "380 – 1050 nm (18 filters)" },
       { label: "Exposure range", value: "5 ms – 1200 s (64 settings)" },
     ],
-    anchor: new THREE.Vector3(1.2, 0.2, 1.8),
-    modelRadius: 3,
+    anchor: new THREE.Vector3(0.067, 0.624, 0.06),
+    modelRadius: 1.5,
+    busRelative: false,
   },
 
-  //  VIMS
-  {
-    id: "vims",
-    name: "VIMS",
-    shortName: "VIMS",
-    description:
-      "Visible and Infrared Mapping Spectrometer. Two channels: VIMS-V (visible, 0.35–1.05 µm, 96 bands) " +
-      "and VIMS-IR (infrared, 0.85–5.1 µm, 256 bands). Used to map the composition of " +
-      "Saturn's rings, Titan's surface through its haze, and the atmospheres of Saturn and its moons.",
-    mass: 37.14,
-    parent: "bus",
-    stats: [
-      { label: "Mass", value: "37.14 kg" },
-      { label: "VIMS-V range", value: "0.35 – 1.05 µm (96 bands)" },
-      { label: "VIMS-IR range", value: "0.85 – 5.1 µm (256 bands)" },
-      { label: "Target", value: "Composition mapping (rings, Titan, Saturn)" },
-    ],
-    anchor: new THREE.Vector3(1.6, -0.5, 1.4),
-    modelRadius: 2.5,
-  },
-
-  //  CIRS
-  {
-    id: "cirs",
-    name: "CIRS",
-    shortName: "CIRS",
-    description:
-      "Composite Infrared Spectrometer. Covers 7–1,000 µm (far-infrared through mid-infrared). " +
-      "Measured temperature profiles and composition of Saturn's and Titan's atmospheres, " +
-      "and the thermal properties of ring particles.",
-    mass: 39.24,
-    parent: "bus",
-    stats: [
-      { label: "Mass", value: "39.24 kg" },
-      { label: "Spectral range", value: "7 – 1,000 µm" },
-      { label: "Science", value: "Thermal mapping — atmosphere & rings" },
-    ],
-    anchor: new THREE.Vector3(-1.5, 0, 1.5),
-    modelRadius: 2.5,
-  },
-
-  //  RADAR ─
   {
     id: "radar",
     name: "RADAR",
@@ -186,17 +168,64 @@ export const COMPONENTS: ComponentMetadata[] = [
       { label: "Alt. res.", value: "40 m at 24 km altitude" },
       { label: "Aperture", value: "High-Gain Antenna (4.0 m)" },
     ],
-    anchor: new THREE.Vector3(0, 4.5, 0),
-    modelRadius: 3,
+    anchor: new THREE.Vector3(0, 1.143, 0),
+    modelRadius: 1.5,
+    busRelative: false,
   },
 
-  //  INMS
+  //  Secondary — bus-relative offsets
+  // Offsets are in spacecraft-local space (+Y up toward HGA, +Z forward/instrument face).
+  // useLiveLabelAnchors rotates these by the spacecraft world quaternion each frame
+  // so they track rotation correctly without needing individual mesh refs.
+  // Bus body radius ≈ 0.6 scene units. Labels should sit just proud of that surface.
+
+  {
+    id: "vims",
+    name: "Visible and Infrared Mapping Spectrometer",
+    shortName: "VIMS",
+    description:
+      "Two channels: VIMS-V (visible, 0.35–1.05 µm, 96 bands) " +
+      "and VIMS-IR (infrared, 0.85–5.1 µm, 256 bands). Used to map the composition of " +
+      "Saturn's rings, Titan's surface through its haze, and the atmospheres of Saturn and its moons.",
+    mass: 37.14,
+    parent: "bus",
+    stats: [
+      { label: "Mass", value: "37.14 kg" },
+      { label: "VIMS-V range", value: "0.35 – 1.05 µm (96 bands)" },
+      { label: "VIMS-IR range", value: "0.85 – 5.1 µm (256 bands)" },
+      { label: "Target", value: "Composition mapping (rings, Titan, Saturn)" },
+    ],
+    anchor: new THREE.Vector3(0.55, 0.3, 0.5),
+    modelRadius: 1.2,
+    busRelative: true,
+  },
+
+  {
+    id: "cirs",
+    name: "Composite Infrared Spectrometer",
+    shortName: "CIRS",
+    description:
+      "Covers 7–1,000 µm (far-infrared through mid-infrared). " +
+      "Measured temperature profiles and composition of Saturn's and Titan's atmospheres, " +
+      "and the thermal properties of ring particles.",
+    mass: 39.24,
+    parent: "bus",
+    stats: [
+      { label: "Mass", value: "39.24 kg" },
+      { label: "Spectral range", value: "7 – 1,000 µm" },
+      { label: "Science", value: "Thermal mapping — atmosphere & rings" },
+    ],
+    anchor: new THREE.Vector3(-0.55, 0.3, 0.5),
+    modelRadius: 1.2,
+    busRelative: true,
+  },
+
   {
     id: "inms",
-    name: "INMS",
+    name: "Ion and Neutral Mass Spectrometer",
     shortName: "INMS",
     description:
-      "Ion and Neutral Mass Spectrometer. Sampled the composition of Saturn's upper atmosphere, " +
+      "Sampled the composition of Saturn's upper atmosphere, " +
       "Titan's ionosphere, and the plumes of Enceladus during close flybys. " +
       "Used quadrupole mass analysis to identify molecular species.",
     mass: 9.25,
@@ -208,17 +237,41 @@ export const COMPONENTS: ComponentMetadata[] = [
         value: "Atmospheric & plume composition (ionized + neutral species)",
       },
     ],
-    anchor: new THREE.Vector3(0.8, 1.0, 1.8),
-    modelRadius: 2,
+    anchor: new THREE.Vector3(0.2, 0.5, 0.65),
+    modelRadius: 1.2,
+    busRelative: true,
   },
 
-  //  RPWS
+  {
+    id: "uvis",
+    name: "Ultraviolet Imaging Spectrograph",
+    shortName: "UVIS",
+    description:
+      "Covered 56–190 nm (EUV) and 110–190 nm (FUV). " +
+      "Measured atmospheric and ring compositions via stellar and solar occultations, " +
+      "and detected auroral emissions at Saturn and Titan.",
+    mass: 15.43,
+    parent: "bus",
+    stats: [
+      { label: "Mass", value: "15.43 kg" },
+      { label: "EUV range", value: "56 – 190 nm" },
+      { label: "FUV range", value: "110 – 190 nm" },
+      {
+        label: "Science",
+        value: "Atmospheric occultations, ring occultations, aurora",
+      },
+    ],
+    anchor: new THREE.Vector3(0.65, 0.1, 0.3),
+    modelRadius: 1.2,
+    busRelative: true,
+  },
+
   {
     id: "rpws",
-    name: "RPWS",
+    name: "Radio and Plasma Wave Science",
     shortName: "RPWS",
     description:
-      "Radio and Plasma Wave Science. Three electric field antennas (magnetometer boom-mounted) " +
+      "Three electric field antennas (magnetometer boom-mounted) " +
       "and a magnetic search coil. Detected Saturn's lightning (SED bursts), measured plasma " +
       "waves in the magnetosphere, and observed Titan's ionosphere during 127 flybys.",
     mass: 6.8,
@@ -234,17 +287,20 @@ export const COMPONENTS: ComponentMetadata[] = [
         value: "Plasma waves, SED lightning, Titan ionosphere",
       },
     ],
-    anchor: new THREE.Vector3(-2.0, 0.5, 1.2),
-    modelRadius: 2,
+    // RPWS: the three electric-field antennas mount on the upper bus near
+    // the HGA base, so the visible RPWS anchor sits HIGH on the model
+    // (positive Y, near top of bus body). Side bias picks one of the booms.
+    anchor: new THREE.Vector3(0.3, 0.75, 0.0),
+    modelRadius: 1.2,
+    busRelative: true,
   },
 
-  //  CAPS
   {
     id: "caps",
-    name: "CAPS",
+    name: "Cassini Plasma Spectrometer",
     shortName: "CAPS",
     description:
-      "Cassini Plasma Spectrometer. Three sensors — Electron Spectrometer (ELS), " +
+      "Three sensors — Electron Spectrometer (ELS), " +
       "Ion Beam Spectrometer (IBS), and Ion Mass Spectrometer (IMS) — to characterize " +
       "the charged-particle populations in Saturn's magnetosphere and Titan's ionosphere.",
     mass: 12.5,
@@ -254,17 +310,41 @@ export const COMPONENTS: ComponentMetadata[] = [
       { label: "Sensors", value: "ELS + IBS + IMS" },
       { label: "Science", value: "Magnetospheric plasma & Titan ionosphere" },
     ],
-    anchor: new THREE.Vector3(1.8, -0.8, -1.2),
-    modelRadius: 2,
+    // CAPS sits on the UPPER-LEFT face of the bus body (per reference photo),
+    // just below the HGA mount. Slight forward bias to face the camera in
+    // front-style inspection views.
+    anchor: new THREE.Vector3(-0.35, 0.4, 0.2),
+    modelRadius: 1.2,
+    busRelative: true,
   },
 
-  //  CDA ─
+  {
+    id: "mimi",
+    name: "Magnetospheric Imaging Instrument",
+    shortName: "MIMI",
+    description:
+      "Three sensors: CHEMS (charge-energy-mass " +
+      "spectrometer), INCA (ion and neutral camera), and LEMMS (low-energy magnetospheric " +
+      "measurement system). Produced the first global images of Saturn's magnetosphere " +
+      "in energetic neutral atoms.",
+    mass: 16.0,
+    parent: "bus",
+    stats: [
+      { label: "Mass", value: "16.00 kg" },
+      { label: "Sensors", value: "CHEMS + INCA + LEMMS" },
+      { label: "Science", value: "First ENA images of Saturn magnetosphere" },
+    ],
+    anchor: new THREE.Vector3(0.65, -0.1, -0.25),
+    modelRadius: 1.2,
+    busRelative: true,
+  },
+
   {
     id: "cda",
-    name: "CDA",
+    name: "Cosmic Dust Analyzer",
     shortName: "CDA",
     description:
-      "Cosmic Dust Analyzer. Detected and characterized dust grains striking the detector " +
+      "Detected and characterized dust grains striking the detector " +
       "at up to 70 km/s. Key discovery: ice grains from Enceladus's south polar plumes " +
       "are the primary source material for Saturn's E ring.",
     mass: 16.36,
@@ -276,84 +356,21 @@ export const COMPONENTS: ComponentMetadata[] = [
         value: "Enceladus plume ice → E-ring source material",
       },
     ],
-    anchor: new THREE.Vector3(-1.6, -0.5, -1.4),
-    modelRadius: 2,
+    // CDA: mounted on the lower equipment module at the BOTTOM of the
+    // spacecraft (negative Y, well below bus center). Slight side offset
+    // so the dot doesn't overlap with the bus-anchor projection on most
+    // camera angles.
+    anchor: new THREE.Vector3(-0.1, -0.7, 0.05),
+    modelRadius: 1.2,
+    busRelative: true,
   },
 
-  //  MAG ─
-  {
-    id: "mag",
-    name: "MAG",
-    shortName: "MAG",
-    description:
-      "Dual Technique Magnetometer — fluxgate (FGM) at 6.5 m on the magnetometer boom " +
-      "and a vector/scalar helium magnetometer (V/SHM) at 11 m from the spacecraft centre. " +
-      "Total boom length: 13.0 m. Mapped Saturn's global magnetic field structure " +
-      "and quantified Titan's induced magnetosphere.",
-    mass: 8.82,
-    parent: "bus",
-    stats: [
-      { label: "Mass", value: "8.82 kg (total system)" },
-      { label: "FGM position", value: "6.5 m on boom" },
-      { label: "V/SHM pos", value: "11.0 m on boom" },
-      { label: "Boom length", value: "13.0 m" },
-    ],
-    anchor: new THREE.Vector3(-3.5, 0.5, 0),
-    modelRadius: 2,
-  },
-
-  //  MIMI
-  {
-    id: "mimi",
-    name: "MIMI",
-    shortName: "MIMI",
-    description:
-      "Magnetospheric Imaging Instrument. Three sensors: CHEMS (charge-energy-mass " +
-      "spectrometer), INCA (ion and neutral camera), and LEMMS (low-energy magnetospheric " +
-      "measurement system). Produced the first global images of Saturn's magnetosphere " +
-      "in energetic neutral atoms.",
-    mass: 16.0,
-    parent: "bus",
-    stats: [
-      { label: "Mass", value: "16.00 kg" },
-      { label: "Sensors", value: "CHEMS + INCA + LEMMS" },
-      { label: "Science", value: "First ENA images of Saturn magnetosphere" },
-    ],
-    anchor: new THREE.Vector3(2.0, -0.2, -1.0),
-    modelRadius: 2,
-  },
-
-  //  UVIS
-  {
-    id: "uvis",
-    name: "UVIS",
-    shortName: "UVIS",
-    description:
-      "Ultraviolet Imaging Spectrograph. Covered 56–190 nm (EUV) and 110–190 nm (FUV). " +
-      "Measured atmospheric and ring compositions via stellar and solar occultations, " +
-      "and detected auroral emissions at Saturn and Titan.",
-    mass: 15.43,
-    parent: "bus",
-    stats: [
-      { label: "Mass", value: "15.43 kg" },
-      { label: "EUV range", value: "56 – 190 nm" },
-      { label: "FUV range", value: "110 – 190 nm" },
-      {
-        label: "Science",
-        value: "Atmospheric occultations, ring occultations, aurora",
-      },
-    ],
-    anchor: new THREE.Vector3(0.5, 1.2, -1.8),
-    modelRadius: 2,
-  },
-
-  //  RSS ─
   {
     id: "rss",
-    name: "RSS",
+    name: "Radio Science Subsystem",
     shortName: "RSS",
     description:
-      "Radio Science Subsystem. Uses the HGA to send coherent X-band (8.4 GHz) and Ka-band " +
+      "Uses the HGA to send coherent X-band (8.4 GHz) and Ka-band " +
       "(32 GHz) signals through Saturn's atmosphere and rings for occultation experiments. " +
       "Also conducts gravitational experiments via precision Doppler tracking.",
     mass: 14.38,
@@ -364,21 +381,22 @@ export const COMPONENTS: ComponentMetadata[] = [
       { label: "Ka-band down", value: "32,028 MHz — 56.4 dBi" },
       { label: "Science", value: "Occultations, gravity, ring structure" },
     ],
-    anchor: new THREE.Vector3(-0.5, 4.2, 0.5),
-    modelRadius: 2,
+    anchor: new THREE.Vector3(-0.2, 0.5, -0.3),
+    modelRadius: 1.2,
+    busRelative: true,
   },
 ];
 
-//  Lookup helper
+// Lookup helper
 export function getComponent(id: string): ComponentMetadata | undefined {
   return COMPONENTS.find((c) => c.id === id);
 }
 
-//  Satellites catalog ─
+// Satellites catalog
 export interface SatelliteMetadata {
   name: string;
-  diameter: number; // km
-  distance: number; // km from Saturn centre
+  diameter: number;
+  distance: number;
 }
 
 export const SATELLITES: SatelliteMetadata[] = [
@@ -402,12 +420,12 @@ export const SATELLITES: SatelliteMetadata[] = [
   { name: "Phoebe", diameter: 220, distance: 12952000 },
 ];
 
-//  HGA Link Budget
+// HGA Link Budget
 export interface LinkBudgetData {
   band: string;
-  frequency: number; // MHz
-  gain: number; // dBi
-  beamwidth: number; // degrees (0 = N/A)
+  frequency: number;
+  gain: number;
+  beamwidth: number;
 }
 
 export const LINK_BUDGET: LinkBudgetData[] = [
