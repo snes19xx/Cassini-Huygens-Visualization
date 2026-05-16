@@ -1,296 +1,197 @@
 // src/scenes/cassini/data/phases.ts
-// T-value formula: T = (date − launch) / (impact − launch)
-// Launch (T=0): 1997-10-15 12:00:00 UTC
-// Impact (T=1): 2017-09-15 10:45:00 UTC
+//
+// Per-body event content for the InfoPanel + ring-crossing visual cues.
+//
+// Pre-streamlining this file was a flat 38-entry PHASES array driving the
+// scrubber tick marks. The scrubber now uses TABLEAUS as its source of
+// truth (10 markers, one per scene); events here are pure InfoPanel
+// content keyed by body. See timeline.md for the rationale.
 
-export interface MissionPhase {
+const MISSION_START_MS = new Date("1997-10-15").getTime();
+const MISSION_END_MS = new Date("2017-09-15").getTime();
+const MISSION_SPAN_MS = MISSION_END_MS - MISSION_START_MS;
+
+export interface BodyEvent {
+  /** Pretty-printed for display, e.g. "Mar 8, 2006". */
+  date: string;
+  /** Local-midnight ms; used for ±90 day "active event" comparisons. */
+  dateMs: number;
+  /** Short title shown in the panel list. */
+  title: string;
+}
+
+export interface BodyContent {
+  /** Stable id matching tableau.body for moon tableaus, plus "saturn" / "grand_finale". */
   id: string;
-  name: string;
-  t: number;
-  description: string;
-  note?: string; // short contextual note for Timeline chip tooltip
+  /** All-caps label shown in the panel header. */
+  displayName: string;
+  /** One-paragraph teaser shown above the event list. */
+  hook: string;
+  events: BodyEvent[];
 }
 
-export const PHASES: MissionPhase[] = [
-  //  Interplanetary Cruise
-  {
-    id: "launch",
-    name: "Launch",
-    t: 0.0,
-    description:
-      "October 15, 1997: Cassini-Huygens lifts off from Cape Canaveral Air Force Station " +
-      "aboard a Titan IVB/Centaur. Total launch mass: 5,712 kg. The spacecraft carries " +
-      "3,132 kg of propellant for the 7-year interplanetary journey.",
-    note: "Oct 15, 1997",
-  },
-  {
-    id: "venus1",
-    name: "Venus Flyby 1",
-    t: 0.026461,
-    description:
-      "April 26, 1998: First Venus gravity assist at 234 km altitude. " +
-      "Adds ~3 km/s to the spacecraft's heliocentric velocity. " +
-      "ISS cameras return the first images of Cassini's commissioning phase.",
-    note: "Apr 26, 1998 — 234 km altitude",
-  },
-  {
-    id: "venus2",
-    name: "Venus Flyby 2",
-    t: 0.084743,
-    description:
-      "June 24, 1999: Second Venus gravity assist at 600 km altitude. " +
-      "The VIMS and CIRS instruments are calibrated during this flyby.",
-    note: "Jun 24, 1999 — 600 km altitude",
-  },
-  {
-    id: "earth",
-    name: "Earth Flyby",
-    t: 0.092303,
-    description:
-      "August 18, 1999: Gravity assist at Earth, passing at 1,171 km altitude over the South Pacific. " +
-      "Cassini's closest approach to a populated world. The flyby adds the final velocity increment needed for Jupiter.",
-    note: "Aug 18, 1999 — 1,171 km altitude",
-  },
-  {
-    id: "jupiter",
-    name: "Jupiter Flyby",
-    t: 0.161026,
-    description:
-      "December 30, 2000: Jupiter gravity assist at ~10 million km closest approach. " +
-      "Cassini and the Galileo orbiter conduct the first dual-spacecraft study of Jupiter. " +
-      "ISS captures 26,000 images; CIRS maps Jovian atmospheric temperature.",
-    note: "Dec 30, 2000 — ~10×10⁶ km",
+function ev(y: number, m: number, d: number, title: string): BodyEvent {
+  const d0 = new Date(y, m - 1, d);
+  return {
+    dateMs: d0.getTime(),
+    date: d0.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }),
+    title,
+  };
+}
+
+export const BODY_CONTENT: Record<string, BodyContent> = {
+  saturn: {
+    id: "saturn",
+    displayName: "SATURN",
+    hook: "Cassini arrived at Saturn in 2004 and orbited for 13 years, mapping the rings, atmosphere, and seasons in unprecedented detail.",
+    events: [
+      ev(2002, 10, 31, "First long-distance image of Saturn"),
+      ev(2004, 6, 30, "Saturn Orbit Insertion — 96-minute retrograde burn"),
+      ev(2006, 9, 14, "Faint outer rings discovered edge-on against the sun"),
+      ev(2009, 8, 10, "Saturn Equinox — kilometre-long ring shadows"),
+      ev(2011, 9, 15, "Three-moon portrait: Rhea, Enceladus, Mimas"),
+      ev(2012, 7, 8, "High-angle ring fine-scale structure"),
+      ev(2013, 7, 18, '"Wave at Saturn" — Earth photographed in eclipse'),
+      ev(2013, 12, 3, "North-pole hexagonal jet stream captured top-down"),
+    ],
   },
 
-  //  Saturn Operations
-  {
-    id: "soi",
-    name: "Saturn Orbit Insertion",
-    t: 0.336841,
-    description:
-      "July 1, 2004: Cassini fires its main engine for 96 minutes in a retrograde burn " +
-      "to shed 626 m/s and achieve Saturn orbit capture. During the crossing of the " +
-      "ring plane, the HGA is turned forward as a dust shield — a first in deep-space mission history.",
-    note: "Jul 1, 2004 — 96 min SOI burn",
-  },
-  {
-    id: "separation",
-    name: "Huygens Separation",
-    t: 0.361177,
-    description:
-      "December 25, 2004: Huygens probe separates from Cassini via three pyrotechnic " +
-      "bolt-cutters and a spring release at 0.3 m/s. Cassini immediately executes a " +
-      "deflection manoeuvre to set up the relay geometry for Titan entry. " +
-      "Chain A anomaly: the receiver was never commanded on due to a software omission in 2000.",
-    note: "Dec 25, 2004 — pyrotechnic release",
-  },
-  {
-    id: "titan-entry",
-    name: "Huygens Titan Entry",
-    t: 0.363966,
-    description:
-      "January 14, 2005: Huygens enters Titan's atmosphere at ~6.0 km/s. " +
-      "The AQ60 heat shield (2.7 m, 60° coni-spherical) withstands a 12,000 °C shock layer " +
-      "and 1,800 °C surface temperature. After 2.5 hours of parachute descent, Huygens lands on Titan. " +
-      "DISR captures 350 images. Surface temperature: −179 °C. Relay Chain B transmits 3 hours of data.",
-    note: "Jan 14, 2005 — 2.5 hr descent",
+  titan: {
+    id: "titan",
+    displayName: "TITAN",
+    hook: "Titan, Saturn's largest moon and the only one with a substantial atmosphere. Cassini conducted 127 close flybys; Huygens became the first probe to land on a body in the outer Solar System.",
+    events: [
+      ev(2004, 10, 24, "First close Titan encounter"),
+      ev(2004, 12, 23, "Huygens probe separates from orbiter"),
+      ev(2005, 1, 14, "Huygens descent & landing — 2h 27m surface data"),
+      ev(2006, 7, 21, "Methane/ethane lakes near north pole"),
+      ev(2010, 6, 20, "Lowest atmospheric dip — magnetic structure"),
+      ev(2014, 3, 5, "100th Titan flyby — methane seas mapped"),
+      ev(2016, 4, 28, "Kraken Mare depth & composition revealed"),
+    ],
   },
 
-  //  Grand Finale
-  {
-    id: "grand-finale",
-    name: "Grand Finale Start",
-    t: 0.980471,
-    description:
-      "April 26, 2017: Cassini begins its 22 Grand Finale ring-plane dives, " +
-      "threading the 2,000 km gap between Saturn's cloud tops and the inner edge of the D ring. " +
-      "Each orbit takes approximately 6.5 days. HGA is used as a dust shield on protected crossings.",
-    note: "Apr 26, 2017 — Dive 1 of 22",
-  },
-  {
-    id: "ring-cross-2",
-    name: "Ring Crossing 2",
-    t: 0.981357,
-    description: "May 2, 2017: Second Grand Finale ring-plane crossing.",
-    note: "May 2, 2017",
-  },
-  {
-    id: "ring-cross-3",
-    name: "Ring Crossing 3",
-    t: 0.982242,
-    description:
-      "May 9, 2017: Third crossing — Cassini communicates through the ring plane in real time.",
-    note: "May 9, 2017 — live downlink",
-  },
-  {
-    id: "ring-cross-4",
-    name: "Ring Crossing 4",
-    t: 0.983127,
-    description: "May 15, 2017: Fourth ring-plane crossing with live downlink.",
-    note: "May 15, 2017",
-  },
-  {
-    id: "ring-cross-5",
-    name: "Ring Crossing 5",
-    t: 0.984012,
-    description: "May 22, 2017: Fifth ring-plane crossing with live downlink.",
-    note: "May 22, 2017",
-  },
-  {
-    id: "ring-cross-6",
-    name: "Ring Crossing 6",
-    t: 0.9849,
-    description:
-      "May 28, 2017: Sixth crossing — farthest D-ring venture. HGA shielded.",
-    note: "May 28, 2017 — deepest D-ring",
-  },
-  {
-    id: "ring-cross-7",
-    name: "Ring Crossing 7",
-    t: 0.98579,
-    description: "June 4, 2017: Second-closest D-ring approach. HGA shielded.",
-    note: "Jun 4, 2017",
-  },
-  {
-    id: "ring-cross-8",
-    name: "Ring Crossing 8",
-    t: 0.986678,
-    description: "June 10, 2017: Live downlink crossing.",
-    note: "Jun 10, 2017",
-  },
-  {
-    id: "ring-cross-9",
-    name: "Ring Crossing 9",
-    t: 0.987566,
-    description: "June 16, 2017: Ninth ring-plane crossing.",
-    note: "Jun 16, 2017",
-  },
-  {
-    id: "ring-cross-10",
-    name: "Ring Crossing 10",
-    t: 0.988454,
-    description: "June 23, 2017: Live downlink crossing.",
-    note: "Jun 23, 2017",
-  },
-  {
-    id: "ring-cross-11",
-    name: "Ring Crossing 11",
-    t: 0.989344,
-    description:
-      "June 29, 2017: Ventured into the D ring — spacecraft NOT shielded by HGA.",
-    note: "Jun 29, 2017 — unshielded D-ring",
-  },
-  {
-    id: "ring-cross-12",
-    name: "Ring Crossing 12",
-    t: 0.990233,
-    description: "July 6, 2017: D-ring crossing, HGA shielded.",
-    note: "Jul 6, 2017",
-  },
-  {
-    id: "ring-cross-13",
-    name: "Ring Crossing 13",
-    t: 0.991122,
-    description: "July 12, 2017: Thirteenth ring-plane crossing.",
-    note: "Jul 12, 2017",
-  },
-  {
-    id: "ring-cross-14",
-    name: "Ring Crossing 14",
-    t: 0.992011,
-    description: "July 19, 2017: Live downlink crossing.",
-    note: "Jul 19, 2017",
-  },
-  {
-    id: "ring-cross-15",
-    name: "Ring Crossing 15",
-    t: 0.992899,
-    description: "July 25, 2017: Fifteenth ring-plane crossing.",
-    note: "Jul 25, 2017",
-  },
-  {
-    id: "ring-cross-16",
-    name: "Ring Crossing 16",
-    t: 0.993788,
-    description: "August 1, 2017: Sixteenth ring-plane crossing.",
-    note: "Aug 1, 2017",
-  },
-  {
-    id: "ring-cross-17",
-    name: "Ring Crossing 17",
-    t: 0.994677,
-    description: "August 7, 2017: Seventeenth ring-plane crossing.",
-    note: "Aug 7, 2017",
-  },
-  {
-    id: "atm-dip-1",
-    name: "Atmospheric Dip 1",
-    t: 0.995565,
-    description:
-      "August 14, 2017: First of five terminal periapse atmospheric dips. " +
-      "Cassini samples Saturn's upper atmosphere directly with INMS.",
-    note: "Aug 14, 2017 — 1st atm. dip",
-  },
-  {
-    id: "atm-dip-2",
-    name: "Atmospheric Dip 2",
-    t: 0.996453,
-    description: "August 20, 2017: Second atmospheric dip.",
-    note: "Aug 20, 2017",
-  },
-  {
-    id: "atm-dip-3",
-    name: "Atmospheric Dip 3",
-    t: 0.99734,
-    description:
-      "August 27, 2017: Third and lowest atmospheric dip — deepest sampling altitude.",
-    note: "Aug 27, 2017 — deepest dip",
-  },
-  {
-    id: "atm-dip-4",
-    name: "Atmospheric Dip 4",
-    t: 0.998228,
-    description: "September 2, 2017: Fourth atmospheric dip.",
-    note: "Sep 2, 2017",
-  },
-  {
-    id: "atm-dip-5",
-    name: "Atmospheric Dip 5",
-    t: 0.999115,
-    description:
-      "September 9, 2017: Fifth and final atmospheric dip. " +
-      "Last orbit before the terminal plunge. All science data transmitted.",
-    note: "Sep 9, 2017 — final dip",
+  enceladus: {
+    id: "enceladus",
+    displayName: "ENCELADUS",
+    hook: "A tiny ice moon hiding a global subsurface ocean. Cassini's most astrobiologically significant target.",
+    events: [
+      ev(2005, 7, 13, "First close Enceladus flyby"),
+      ev(2006, 3, 8, "Geyser plumes confirm subsurface liquid water"),
+      ev(2007, 10, 9, "Tiger-stripe fractures imaged glowing with activity"),
+      ev(2008, 3, 12, "Complex organic molecules detected in plumes"),
+      ev(2008, 10, 8, "16-mile flyby — closest of any Cassini target"),
+      ev(2008, 12, 14, "South pole confirmed geologically active"),
+      ev(2011, 6, 21, "Global subsurface ocean confirmed via gravity"),
+      ev(2014, 7, 27, "101 distinct geyser sources mapped"),
+      ev(2015, 12, 18, "Final close pass over the plumes"),
+    ],
   },
 
-  // Terminal
-  {
-    id: "impact",
-    name: "Final Impact",
-    t: 1.0,
-    description:
-      "September 15, 2017, 10:45 UTC: Signal loss. Cassini enters Saturn's atmosphere " +
-      "at 111,637 kph (69,368 mph) at 1,920 km altitude. Aerodynamic forces tumble and " +
-      "disintegrate the spacecraft within seconds. Peak hull temperature: ~5,500 °C. " +
-      "MLI Mylar melts at 254 °C; aluminium structure melts at 477 °C. " +
-      "Cassini becomes part of Saturn.",
-    note: "Sep 15, 2017 — 10:45 UTC",
+  iapetus: {
+    id: "iapetus",
+    displayName: "IAPETUS",
+    hook: 'Saturn\'s "yin-yang" moon — one hemisphere coated in dark organic material, the other bright ice. The equatorial ridge that makes it look like a walnut is unique in the Solar System.',
+    events: [
+      ev(2004, 12, 30, "Equatorial ridge + albedo dichotomy revealed"),
+      ev(2007, 9, 9, "Close flyby — fine detail on two-toned surface"),
+    ],
   },
-];
 
-//  Helper: find active phase index
-export function findActivePhaseIndex(t: number): number {
-  let idx = 0;
-  for (let i = 0; i < PHASES.length; i++) {
-    if (t >= PHASES[i].t) idx = i;
-    else break;
+  mimas: {
+    id: "mimas",
+    displayName: "MIMAS",
+    hook: 'The "Death Star" moon — its 130 km Herschel crater dwarfs the body itself. Cassini\'s later libration analysis hinted at a possible internal ocean.',
+    events: [
+      ev(2010, 2, 12, "Herschel crater imaged at high resolution"),
+      ev(2014, 10, 16, "Libration analysis suggests internal ocean"),
+    ],
+  },
+
+  tethys: {
+    id: "tethys",
+    displayName: "TETHYS",
+    hook: "An icy moon dominated by the massive Odysseus impact basin and Ithaca Chasma, a 2,000-km rift system that may have formed when Tethys's interior froze and expanded.",
+    events: [
+      ev(2005, 9, 24, "First close flyby (1,500 km) — Odysseus crater"),
+      ev(2007, 8, 14, "Second close pass — high-res Ithaca Chasma"),
+      ev(2015, 6, 30, "Final Tethys flyby"),
+    ],
+  },
+
+  dione: {
+    id: "dione",
+    displayName: "DIONE",
+    hook: 'A heavily cratered moon whose trailing hemisphere shows bright "wispy" terrain — actually ice cliffs from tectonic fracturing.',
+    events: [
+      ev(2005, 10, 11, "First close Dione flyby"),
+      ev(2012, 3, 1, "Molecular oxygen detected in exosphere"),
+      ev(2015, 8, 17, "Final close encounter"),
+    ],
+  },
+
+  rhea: {
+    id: "rhea",
+    displayName: "RHEA",
+    hook: "Saturn's second-largest moon. Cassini detected a tenuous oxygen-carbon-dioxide exosphere — only the second non-Earth body where molecular oxygen was confirmed in situ.",
+    events: [
+      ev(2005, 11, 26, "First close Rhea flyby"),
+      ev(2010, 3, 2, "Closest Rhea pass — 101 km altitude"),
+      ev(2010, 11, 28, "Oxygen + CO₂ exosphere announced"),
+      ev(2016, 3, 29, "Final visit to the icy moons"),
+    ],
+  },
+
+  grand_finale: {
+    id: "grand_finale",
+    displayName: "GRAND FINALE",
+    hook: "Cassini's final five months: 22 dives between Saturn and its rings, ending with disintegration in the planet's atmosphere on Sep 15, 2017.",
+    events: [
+      ev(2016, 11, 29, "F-ring orbits begin"),
+      ev(2017, 4, 25, "First ring dive — flash burst"),
+      ev(2017, 4, 26, "Grand Finale begins — pitches into Big Empty"),
+      ev(2017, 5, 24, "Saturn solstice — maximum axial tilt"),
+      ev(2017, 6, 29, "Halfway home — 11th ring dive midpoint"),
+      ev(2017, 9, 15, "Disintegration in Saturn's atmosphere"),
+    ],
+  },
+};
+
+const NINETY_DAYS_MS = 90 * 24 * 3600 * 1000;
+
+/** Convert mission t ∈ [0, 1] to wall-clock ms (1997-10-15 → 2017-09-15). */
+export function tToDateMs(t: number): number {
+  return MISSION_START_MS + Math.max(0, Math.min(1, t)) * MISSION_SPAN_MS;
+}
+
+/**
+ * Find the event whose date is within ±90 days of `dateMs`. If multiple
+ * qualify, returns the closest. Null if none are within the window.
+ */
+export function findActiveEvent(
+  events: BodyEvent[],
+  dateMs: number,
+): BodyEvent | null {
+  let best: BodyEvent | null = null;
+  let bestDiff = NINETY_DAYS_MS;
+  for (const e of events) {
+    const diff = Math.abs(e.dateMs - dateMs);
+    if (diff <= bestDiff) {
+      best = e;
+      bestDiff = diff;
+    }
   }
-  return idx;
+  return best;
 }
 
-// Grand Finale ring-crossing T-values (for stateAt.ts)
+// 22 ring-crossing flashes during Grand Finale. Used by the visual layer
+// (RingCrossingFlash effect), independent of the InfoPanel event list.
 export const RING_CROSSING_T_VALUES: number[] = [
-  0.980471, 0.981357, 0.982242, 0.983127, 0.984012, 0.9849, 0.98579, 0.986678,
+  0.980481, 0.981357, 0.982242, 0.983127, 0.984012, 0.9849, 0.98579, 0.986678,
   0.987566, 0.988454, 0.989344, 0.990233, 0.991122, 0.992011, 0.992899,
   0.993788, 0.994677, 0.995565, 0.996453, 0.99734, 0.998228, 0.999115,
 ];

@@ -1,12 +1,13 @@
 /*
   src/scenes/cassini/parts/CassiniHuygensAwithoutHyugens.tsx
-  Cassini orbiter only - used for label mode after Huygens separation (t >= 0.361177).
-  [NEEDS TO BE FIXED FOR USER SELECTION ON THE HOME UI]
-  Exposes the same anchor ref shape as CassiniHuygensA so Spacecraft.tsx
+  Cassini orbiter only = used for label mode after Huygens separation (t >= 0.361177).
+  HAS the same anchor ref shape as CassiniHuygensA so Spacecraft.tsx
   can use one unified ref type for both label models.
+  GLB path /assets/CassiniHuygensAwithoutHyugens.glb
 */
 
 import { useGLTF } from "@react-three/drei";
+import React, { useEffect } from "react";
 import * as THREE from "three";
 import { GLTF } from "three-stdlib";
 import type { CassiniAAnchors } from "./CassiniHuygensA";
@@ -49,6 +50,15 @@ export function CassiniHuygensAwithoutHuygens({
     "/assets/CassiniHuygensAwithoutHyugens.glb",
   ) as GLTFResult;
 
+  useEffect(() => {
+    Object.values(materials).forEach((m) => {
+      if (m instanceof THREE.MeshStandardMaterial) {
+        if (m.metalness > 0.25) m.metalness = 0.25;
+        m.envMapIntensity = 0.6;
+      }
+    });
+  }, [materials]);
+
   const mat = (original: THREE.Material) => overrideMaterial ?? original;
 
   return (
@@ -58,7 +68,6 @@ export function CassiniHuygensAwithoutHuygens({
         material={mat(nodes._root.material as THREE.Material)}
       >
         <mesh
-          ref={anchorRefs?.mag}
           geometry={nodes.aluminum.geometry}
           material={mat(materials.aluminum)}
           position={[-0.009, -2.44, -4.66]}

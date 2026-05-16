@@ -1,11 +1,12 @@
 /*
   src/scenes/cassini/parts/CassiniHuygensA.tsx
   Full Cassini + Huygens model (pre-separation phases).
-  mesh refs for live label anchor projection.
+  HAS mesh refs for live label anchor projection.
+  GLB path: /assets/CassiniHuygensA.glb
 */
 
 import { useGLTF } from "@react-three/drei";
-import React from "react";
+import React, { useEffect } from "react";
 import * as THREE from "three";
 import { GLTF } from "three-stdlib";
 
@@ -39,12 +40,10 @@ export interface CassiniAAnchors {
   bus: React.RefObject<THREE.Mesh>;
   hga: React.RefObject<THREE.Mesh>;
   huygens: React.RefObject<THREE.Mesh>;
-  mag: React.RefObject<THREE.Mesh>;
   iss: React.RefObject<THREE.Mesh>;
   radar: React.RefObject<THREE.Mesh>;
 }
 
-// Fixed: Using ThreeElements or ComponentPropsWithoutRef to avoid parser error
 interface ModelProps extends React.ComponentPropsWithoutRef<"group"> {
   anchorRefs?: CassiniAAnchors;
   overrideMaterial?: THREE.Material | null;
@@ -58,6 +57,14 @@ export function CassiniHuygensA({
   const { nodes, materials } = useGLTF(
     "/assets/CassiniHuygensA.glb",
   ) as GLTFResult;
+  useEffect(() => {
+    Object.values(materials).forEach((m) => {
+      if (m instanceof THREE.MeshStandardMaterial) {
+        if (m.metalness > 0.25) m.metalness = 0.25;
+        m.envMapIntensity = 0.6;
+      }
+    });
+  }, [materials]);
 
   const mat = (original: THREE.Material) => overrideMaterial ?? original;
 
@@ -68,7 +75,6 @@ export function CassiniHuygensA({
         material={mat(nodes._root.material as THREE.Material)}
       >
         <mesh
-          ref={anchorRefs?.mag}
           geometry={nodes.aluminum.geometry}
           material={mat(materials.aluminum)}
           position={[-0.009, -2.44, -4.66]}

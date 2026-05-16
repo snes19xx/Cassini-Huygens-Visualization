@@ -119,9 +119,11 @@ export const COMPONENTS: ComponentMetadata[] = [
       { label: "V/SHM pos", value: "11.0 m on boom" },
       { label: "Boom length", value: "13.0 m" },
     ],
-    anchor: new THREE.Vector3(-0.009, -2.44, -4.66),
+    // MAG is now bus-relative; this anchor field is documentation only.
+    // Authoritative dot position lives in labelOffsets.ts → SECONDARY_OFFSETS.mag
+    anchor: new THREE.Vector3(1.5, -1.5, -2.5),
     modelRadius: 1.5,
-    busRelative: false,
+    busRelative: true,
   },
 
   {
@@ -362,6 +364,29 @@ export const COMPONENTS: ComponentMetadata[] = [
     // camera angles.
     anchor: new THREE.Vector3(-0.1, -0.7, 0.05),
     modelRadius: 1.2,
+    busRelative: true,
+  },
+
+  {
+    id: "lga1",
+    name: "Low-Gain Antenna 1",
+    shortName: "LGA-1",
+    description:
+      "Wide-angle X-band low-gain antenna mounted on top of the HGA dish. " +
+      "Used when the High-Gain Antenna could not be pointed toward Earth, particularly " +
+      "during Sun-pointed thermal protection attitudes and spacecraft safe-mode operations.",
+    mass: 1.5,
+    parent: "hga",
+    stats: [
+      { label: "Band", value: "X" },
+      { label: "Up-Down link", value: "7,175 MHz – 8,425 MHz" },
+      { label: "Up-Down gain", value: "8.44 – 8.94 dBi" },
+      { label: "Beamwidth", value: "~32° (up), ~24° (down)" },
+      { label: "Type", value: "Corrugated cylindrical waveguide" },
+    ],
+    // Authoritative dot position lives in labelOffsets.ts → SECONDARY_OFFSETS.lga1
+    anchor: new THREE.Vector3(0, 1.0, 0),
+    modelRadius: 1.0,
     busRelative: true,
   },
 

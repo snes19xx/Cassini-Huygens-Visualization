@@ -1,0 +1,388 @@
+// src/scenes/cassini/data/tableaus.ts
+//
+// Tableau-based mission representation. Each tableau is a self-contained
+// scene: Cassini + at most one focal subject (a moon, Saturn, or nothing),
+// with its own camera preset, zoom clamps, and optional far-distance Saturn
+// backdrop. The timeline maps `currentT` to exactly one active tableau via
+// `getActiveTableau(t)`. Tableau windows are non-overlapping and cover [0,1].
+//
+// This replaces the continuous-physics flyby system: instead of moons moving
+// along Catmull-Rom splines around a moving Saturn, each moon sits at a fixed
+// world position inside its tableau, Cassini sits next to it, the user can
+// freely orbit the pair, and Saturn (when shown) is a static far-distance
+// backdrop chosen for visual composition rather than physical accuracy.
+
+export type TableauKind =
+  | "cruise"           // Cassini alone in starfield
+  | "saturn_focus"     // Saturn + rings dominant (SOI / late beauty / finale)
+  | "moon"             // Cassini + a moon, optional far Saturn backdrop
+  | "finale";          // Saturn dominant, Cassini disintegrating
+
+export interface SaturnBackdrop {
+  /** World-space position of Saturn for this moon tableau. */
+  pos: [number, number, number];
+  /** Uniform scale applied to the Saturn group (rings included). */
+  scale: number;
+}
+
+export interface ZoomClamps {
+  /** Minimum camera distance to the tableau target — prevents zooming inside subject. */
+  minDist: number;
+  /** Maximum camera distance — prevents subject shrinking to a dot. */
+  maxDist: number;
+}
+
+export interface CameraPreset {
+  pos: [number, number, number];
+  lookAt: [number, number, number];
+}
+
+export interface Tableau {
+  id: string;
+  kind: TableauKind;
+  /** Inclusive start, exclusive end. Windows are non-overlapping. */
+  tStart: number;
+  tEnd: number;
+  /** Phase label shown in chrome — usually matches a phase in phases.ts. */
+  label: string;
+  /** Body identifier for moon tableaus (titan/iapetus/enceladus/mimas/rhea/dione). */
+  body?: string;
+  /**
+   * For moon tableaus: where Cassini sits relative to the moon (which is at
+   * origin in this tableau's frame). For other tableaus: ignored.
+   */
+  cassiniOffset?: [number, number, number];
+  /**
+   * Effective rendered radius the moon should appear at, regardless of its
+   * real-world body radius. Lets us stylize the relative scale (Titan biggest,
+   * Mimas smallest) without depending on per-flyby scale data.
+   */
+  moonEffectiveRadius?: number;
+  /** Camera framing the user sees on tableau enter (resets via JUMP-TO). */
+  camera: CameraPreset;
+  /**
+   * Optional override for JUMP-TO's landing point inside this tableau's
+   * window. Defaults to `tStart + 1e-5`. Used by `saturn_arrival` so the
+   * JUMP-TO drops the user partway into the scale ramp where Saturn is
+   * already "football-sized" instead of at the start where it's invisible.
+   */
+  jumpT?: number;
+  /** Bounds OrbitControls' zoom range while this tableau is active. */
+  zoom: ZoomClamps;
+  /**
+   * Optional Saturn rendered at a fixed offset for visual context. Only set
+   * for moon tableaus — saturn_focus / finale render Saturn at origin instead.
+   * Per-moon variance gives each tableau its own composition.
+   */
+  saturnBackdrop?: SaturnBackdrop;
+  /** Per-tableau effects toggled by the resolver (huygens descent, plumes…). */
+  effects?: {
+    huygensDescent?: boolean;     // Titan tableau: show Huygens probe + DISR channels
+    plumes?: boolean;             // Enceladus tableau: south-pole geyser jets
+    rings?: boolean;              // Saturn shown with rings (default true when saturn rendered)
+    grandFinaleBurn?: boolean;    // Cassini disintegration FX
+    soiBurn?: boolean;            // SOI engine burn glow
+  };
+}
+
+// Saturn body radius is 180; rings extend to 419. With moons at fixed effective
+// radius ~25–50, putting Saturn at distance ≥1500 keeps it visibly far without
+// crowding the moon. Scale exaggerates: real Saturn would be ~1°, we use 5–15°.
+
+export const TABLEAUS: Tableau[] = [
+  // ── 1. Cruise / Pre-SOI ─────────────────────────────────────────────────
+  // Cassini alone, Earth → Saturn cruise. No Saturn, no moons.
+  // Shortened (was 0.0→0.336) to make room for a long arrival approach
+  // where Saturn visibly grows from a dot to full size — user feedback
+  // was that at their playback speed the previous 0.336→0.353 window
+  // was too brief to perceive any growth.
+  {
+    id: "cruise_early",
+    kind: "cruise",
+    tStart: 0.0,
+    tEnd: 0.180,
+    label: "CRUISE",
+    camera: {
+      pos: [25, 12, 45],
+      lookAt: [0, 0, 0],
+    },
+    zoom: { minDist: 18, maxDist: 200 },
+  },
+
+  // ── 2. Saturn Arrival / SOI ─────────────────────────────────────────────
+  // Saturn approach + orbit insertion. Saturn grows from a tiny dot at
+  // tStart to full size by tEnd; the SOI burn (handled in stateAt.ts)
+  // fires at t≈0.336, which lands ~85% through this widened window so
+  // the burn happens against a near-full-sized Saturn.
+  //
+  // Framing: chase-cam behind Cassini, Saturn ahead at origin. Cassini
+  // sits at a fixed +Z offset so it stays in the foreground while Saturn
+  // grows to fill the background. JUMP-TO lands mid-window (jumpT 0.28)
+  // where the scale ramp puts Saturn at ~"football size" — landing at
+  // tStart drops the user at scale=0 which reads as "nothing happened."
+  {
+    id: "saturn_arrival",
+    kind: "saturn_focus",
+    tStart: 0.180,
+    tEnd: 0.353,
+    label: "SATURN ORBIT INSERTION",
+    cassiniOffset: [0, 20, 700],
+    camera: {
+      pos: [0, 90, 980],
+      lookAt: [0, 0, 0],
+    },
+    jumpT: 0.235,
+    zoom: { minDist: 200, maxDist: 4000 },
+    effects: { rings: true, soiBurn: true },
+  },
+
+  // ── 3. Titan + Huygens Landing ──────────────────────────────────────────
+  // Big set-piece: Titan dominant, Huygens probe descends, DISR channel toggle.
+  // Titan is far from Saturn IRL (1.22 M km, ~5.6° apparent), so Saturn reads small.
+  {
+    id: "titan_huygens",
+    kind: "moon",
+    tStart: 0.353,
+    tEnd: 0.420,
+    label: "HUYGENS LANDS ON TITAN",
+    body: "titan",
+    moonEffectiveRadius: 50,
+    cassiniOffset: [70, 18, 35],
+    camera: {
+      pos: [110, 40, 220],
+      lookAt: [0, 0, 0],
+    },
+    // minDist: keep camera at least ~30% beyond the moon surface so
+    // zooming all the way in can't put the camera inside the body
+    // (a known OrbitControls / near-plane crash mode).
+    zoom: { minDist: 70, maxDist: 2200 },
+    saturnBackdrop: {
+      pos: [-1900, -180, -1300],
+      scale: 0.4,
+    },
+    effects: { huygensDescent: true, rings: true },
+  },
+
+  // ── 4. Enceladus / Cryovolcanism ────────────────────────────────────────
+  // Enceladus is close to Saturn (~238k km, ~29° apparent) — backdrop reads big.
+  {
+    id: "enceladus",
+    kind: "moon",
+    tStart: 0.420,
+    tEnd: 0.490,
+    label: "ENCELADUS — ACTIVE WORLD",
+    body: "enceladus",
+    moonEffectiveRadius: 24,
+    cassiniOffset: [38, -8, 18],
+    camera: {
+      pos: [60, 25, 130],
+      lookAt: [0, 0, 0],
+    },
+    zoom: { minDist: 34, maxDist: 1600 },
+    saturnBackdrop: {
+      pos: [-1100, 80, -1300],
+      scale: 1.05,
+    },
+    effects: { rings: true },
+  },
+
+  // ── 5. Iapetus / Yin–Yang ───────────────────────────────────────────────
+  // Iapetus is the farthest of these moons (3.56 M km, ~1.9°) — Saturn smallest.
+  {
+    id: "iapetus",
+    kind: "moon",
+    tStart: 0.490,
+    tEnd: 0.580,
+    label: "IAPETUS — TWO-TONED MOON",
+    body: "iapetus",
+    moonEffectiveRadius: 32,
+    cassiniOffset: [44, 10, 26],
+    camera: {
+      pos: [70, 30, 160],
+      lookAt: [0, 0, 0],
+    },
+    zoom: { minDist: 44, maxDist: 1800 },
+    saturnBackdrop: {
+      pos: [-2400, 280, -1800],
+      scale: 0.22,
+    },
+    effects: { rings: true },
+  },
+
+  // ── 6. Mimas / Herschel Crater ──────────────────────────────────────────
+  // Mimas is closest to Saturn (185k km, ~37°) — backdrop largest.
+  {
+    id: "mimas",
+    kind: "moon",
+    tStart: 0.580,
+    tEnd: 0.640,
+    label: "MIMAS — DEATH STAR MOON",
+    body: "mimas",
+    moonEffectiveRadius: 18,
+    cassiniOffset: [28, -4, 14],
+    camera: {
+      pos: [42, 15, 95],
+      lookAt: [0, 0, 0],
+    },
+    zoom: { minDist: 26, maxDist: 1400 },
+    saturnBackdrop: {
+      pos: [-650, -40, -520],
+      scale: 1.4,
+    },
+    effects: { rings: true },
+  },
+
+  // ── 7. Tethys / Ithaca Chasma ───────────────────────────────────────────
+  // New tableau (user request). Tethys is third-closest of these (294k km,
+  // ~23° apparent) — backdrop between Enceladus and Dione in scale.
+  {
+    id: "tethys",
+    kind: "moon",
+    tStart: 0.640,
+    tEnd: 0.690,
+    label: "TETHYS — ICE WORLD",
+    body: "tethys",
+    moonEffectiveRadius: 26,
+    cassiniOffset: [40, 6, 22],
+    camera: {
+      pos: [62, 24, 140],
+      lookAt: [0, 0, 0],
+    },
+    zoom: { minDist: 36, maxDist: 1600 },
+    saturnBackdrop: {
+      pos: [-1100, 60, -1100],
+      scale: 0.9,
+    },
+    effects: { rings: true },
+  },
+
+  // ── 8. Dione / Wisps ────────────────────────────────────────────────────
+  // Dione (377k km, ~18°). User: from Dione onward Saturn can be a bit
+  // exaggerated for "cooler" look — but still smaller than Tethys.
+  {
+    id: "dione",
+    kind: "moon",
+    tStart: 0.690,
+    tEnd: 0.745,
+    label: "DIONE — WISPY TERRAIN",
+    body: "dione",
+    moonEffectiveRadius: 28,
+    cassiniOffset: [38, -10, 20],
+    camera: {
+      pos: [60, 22, 140],
+      lookAt: [0, 0, 0],
+    },
+    zoom: { minDist: 38, maxDist: 1700 },
+    saturnBackdrop: {
+      pos: [-1200, -120, -1000],
+      scale: 0.75,
+    },
+    effects: { rings: true },
+  },
+
+  // ── 9. Rhea / Exosphere ─────────────────────────────────────────────────
+  // Rhea (527k km, ~13°). Saturn smaller than at Dione, larger than at Titan.
+  {
+    id: "rhea",
+    kind: "moon",
+    tStart: 0.745,
+    tEnd: 0.810,
+    label: "RHEA — ICY SISTER",
+    body: "rhea",
+    moonEffectiveRadius: 30,
+    cassiniOffset: [42, 8, 22],
+    camera: {
+      pos: [68, 28, 150],
+      lookAt: [0, 0, 0],
+    },
+    zoom: { minDist: 42, maxDist: 1700 },
+    saturnBackdrop: {
+      pos: [-1500, 120, -1300],
+      scale: 0.55,
+    },
+    effects: { rings: true },
+  },
+
+  // ── 9. Late Saturn Beauty (hexagon, equinox-style) ──────────────────────
+  // Saturn dominant, no moon. Used for the late-mission Saturn beauty shots.
+  {
+    id: "saturn_beauty",
+    kind: "saturn_focus",
+    tStart: 0.810,
+    tEnd: 0.960,
+    label: "SATURN STUDIES",
+    camera: {
+      pos: [0, 320, 480],
+      lookAt: [0, 0, 0],
+    },
+    zoom: { minDist: 200, maxDist: 4000 },
+    effects: { rings: true },
+  },
+
+  // ── 10. Grand Finale ────────────────────────────────────────────────────
+  // Saturn fills frame, ring-crossings flash, Cassini disintegrates.
+  {
+    id: "grand_finale",
+    kind: "finale",
+    tStart: 0.960,
+    tEnd: 1.0001, // include t=1.0 inclusively
+    label: "THE GRAND FINALE",
+    camera: {
+      pos: [220, 60, 380],
+      lookAt: [0, 0, 0],
+    },
+    zoom: { minDist: 150, maxDist: 3500 },
+    effects: { rings: true, grandFinaleBurn: true },
+  },
+];
+
+/**
+ * Pick the active tableau for a given mission t. Windows are non-overlapping
+ * and cover [0, 1]; this returns the unique match, or the cruise tableau as
+ * a fallback for any t outside the defined windows.
+ */
+export function getActiveTableau(t: number): Tableau {
+  for (const tab of TABLEAUS) {
+    if (t >= tab.tStart && t < tab.tEnd) return tab;
+  }
+  return TABLEAUS[0]!;
+}
+
+/** Index of the active tableau (for arrow-key navigation in App.tsx). */
+export function findActiveTableauIndex(t: number): number {
+  for (let i = TABLEAUS.length - 1; i >= 0; i--) {
+    if (t >= TABLEAUS[i]!.tStart) return i;
+  }
+  return 0;
+}
+
+/**
+ * Map a tableau to its `BODY_CONTENT` key (in `phases.ts`).
+ *   - moon tableaus use their `body` field
+ *   - both saturn_focus tableaus (arrival + studies) share `"saturn"`
+ *   - finale uses `"grand_finale"`
+ *   - cruise has no body content (returns null → InfoPanel shows cruise UI)
+ */
+export function getBodyContentId(tab: Tableau): string | null {
+  if (tab.body) return tab.body;
+  if (tab.kind === "saturn_focus") return "saturn";
+  if (tab.kind === "finale") return "grand_finale";
+  return null;
+}
+
+/**
+ * JUMP-TO label → tableau id mapping. Each label resolves to a single tableau
+ * (no peak-cycling). For SATURN we pick the arrival; for moon labels we pick
+ * the corresponding moon tableau.
+ */
+export const JUMP_TO_TABLEAU: Record<string, string> = {
+  SATURN: "saturn_arrival",
+  TITAN: "titan_huygens",
+  IAPETUS: "iapetus",
+  ENCELADUS: "enceladus",
+  MIMAS: "mimas",
+  TETHYS: "tethys",
+  RHEA: "rhea",
+  DIONE: "dione",
+  FINALE: "grand_finale",
+};
